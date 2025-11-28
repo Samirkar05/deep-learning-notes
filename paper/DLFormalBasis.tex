@@ -11,8 +11,9 @@
 \usepackage{algpseudocode}
 \usepackage{comment}
 \setlength\parindent{0pt}
-
-
+\usepackage{catchfilebetweentags}
+\usepackage{graphicx}
+\usepackage{float} % Helps keep images where you want them
 % --- 1. Define the Listing Style (Optional, but highly recommended) ---
 \definecolor{codegreen}{rgb}{0,0.6,0}
 \definecolor{codegray}{rgb}{0.5,0.5,0.5}
@@ -36,8 +37,39 @@
 	tabsize=2
 }
 \lstset{style=mystyle}
+\graphicspath{ {fig/} {./images/} }
+% 2. Your Custom Command
+% Arguments:
+% #1 = Relative path to file (e.g., ../code/tokenizer.py)
+% #2 = The Tag Name (e.g., bpetraining)
+% #3 = Caption
+% #4 = Label (for referencing)
+\newcommand{\gitcode}[4]{%
+	\lstinputlisting[%
+	language=Python,
+	rangeprefix=\#\ <,%       Define the start of the comment (# <)
+	rangesuffix=>,%           Define the end of the comment (>)
+	includerangemarker=false, % Hide the comments in the PDF
+	linerange=#2-#2,%         Find the block between the two identical tags
+	caption={#3},%
+	label={#4}%
+	]{../code/#1}%
+}
 
-
+% Command: \addfig
+% Arguments:
+% #1 = Filename (e.g., plot.png)
+% #2 = Caption
+% #3 = Label (for referencing)
+% Now the command is simpler and cleaner
+\newcommand{\simplefig}[3]{%
+	\begin{figure}[htbp]
+		\centering
+		\includegraphics[width=0.9\linewidth]{#1} % No path needed here!
+		\caption{#2}
+		\label{#3}
+	\end{figure}
+}
 \begin{document}
 
 	\justifying
@@ -47,8 +79,7 @@
 	\author{Samir El Karrat Moreno}
 	\maketitle
 	\justifying
-	
-	
+
 	\tableofcontents % This command generates the table of contents/index
 	
 	\newpage % Start the content on a new page
@@ -74,6 +105,7 @@
 		During the training of a tokenizer, we look for efficient mappings between tokens in order to compress token sequences further. We denote as the \textbf{vocabulary} this collection of all mappings. It makes up for the entirety of the learnt parameters. However the \textbf{vocabulary dimension} is a hyper-parameter.
 	\end{itemize}
 
+	\simplefig{tokenizerc.png}{How tokenizer works}{fig:tokenizerfig}
 
 
 	\subsection{Byte Pair Encoding (BPE)}
@@ -255,10 +287,8 @@
 		\end{algorithmic}
 	\end{algorithm}
 	
+
 	
-     \lstinputlisting[language=Python, caption={An implementation of BPE in Python (adapted code from \href{https://github.com/karpathy/minbpe}{Andrej Karpathy's github} )}, label=lst:BPE]{../code/tokenizer.py}
-	
-	
-	
+	\gitcode{tokenizer.py}{bpetraining}{An implementation of BPE in Python (adapted code from \href{https://github.com/karpathy/minbpe}{Andrej Karpathy's github} )}{lst:bpe}
 
 \end{document}
