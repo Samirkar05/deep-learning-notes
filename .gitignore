@@ -1,0 +1,17 @@
+# Ignore Python junk
+__pycache__/
+*.py[cod]
+.env
+venv/
+
+# Ignore LaTeX junk (generated files)
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+
+# Ignore OS junk
+.DS_Store

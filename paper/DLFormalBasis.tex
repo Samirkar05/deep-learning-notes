@@ -1,0 +1,264 @@
+\documentclass{article}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{fancybox}
+\usepackage{geometry}
+\usepackage{xcolor}
+\usepackage{listings}
+\geometry{a4paper, margin=1in}
+\usepackage{ragged2e}
+\usepackage{hyperref}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{comment}
+\setlength\parindent{0pt}
+
+
+% --- 1. Define the Listing Style (Optional, but highly recommended) ---
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolor}{rgb}{0.95,0.95,0.95}
+\lstdefinestyle{mystyle}{
+	backgroundcolor=\color{backcolor},
+	commentstyle=\color{codegreen},
+	keywordstyle=\color{blue},
+	numberstyle=\tiny\color{codegray},
+	stringstyle=\color{codepurple},
+	basicstyle=\ttfamily\footnotesize,
+	breaklines=true,
+	captionpos=b, % Caption position at bottom
+	keepspaces=true,
+	numbers=left,
+	numbersep=5pt,
+	showspaces=false,
+	showstringspaces=false,
+	showtabs=false,
+	tabsize=2
+}
+\lstset{style=mystyle}
+
+
+\begin{document}
+
+	\justifying
+	
+	\centering
+	\title{Training models in Deep Learning: A Formal basis}
+	\author{Samir El Karrat Moreno}
+	\maketitle
+	\justifying
+	
+	
+	\tableofcontents % This command generates the table of contents/index
+	
+	\newpage % Start the content on a new page
+	
+	\section{Introduction} % Placeholder for an initial section if needed
+	
+	% --- Project Sections from your outline ---
+	
+	\section{Input data}
+	
+	\section{Tokenization}
+	
+	
+	% --- End of Project Sections ---
+	
+	In DL we want to train our models by finding the minima of a chosen loss function. Let us denote $x^{(i)}\in \mathcal{D}_{\text{input}}$ be our input data $i = 1, \dotsc, n$ in the input space $\mathcal{D}_{\text{input}}$ for, $n$ being the amount of data that we are training our model with. Often times our input data $x^{(i)}$ can be highly dimensional, possibly reducing the context window of our models (see \autoref{subsec:Transformers}). For example, CNNs work directly on the pixel tensor representing an image. However, for when having text as our input data several methods of compression have been developed, as we are going to describe in the following discussion.
+	
+	In the case that we want to represent our data more condensedly, it is popular to take the following steps: 
+	
+	\begin{itemize}
+		\item[(1)] \textbf{Tokenization}: It is a 'statistical' model for encoding input data following certain fixed rules and frequency optimizations to create condensed representations called \textbf{token sequences}. The latter consist of strings of \textbf{tokens}, statistically optimized encoded subdivisions of our original data. This process is bi-directional, and given any token sequence we can recover its input space representation.
+		
+		During the training of a tokenizer, we look for efficient mappings between tokens in order to compress token sequences further. We denote as the \textbf{vocabulary} this collection of all mappings. It makes up for the entirety of the learnt parameters. However the \textbf{vocabulary dimension} is a hyper-parameter.
+	\end{itemize}
+
+
+
+	\subsection{Byte Pair Encoding (BPE)}
+	
+	\begin{comment}
+		Byte Pair Encoding, or shortly BPE, is a basic text tokenization method that first uses an UTF-8 encoder (most frequently) to translate strings into raw bytes. Then, the most frequent pairs of subsequent bytes get added to a vocabulary. Each new byte-pair added is called a \textbf{merge}. We perform this operation iteratively, further indexing our token sequence according to new merges. In this way, merges defined as combinations of new indices plus some regular bytes are possible.
+	\end{comment}
+	
+	Byte Pair Encoding, or shortly BPE, is a basic example of text tokenization method. During its training stage, we first find the most frequent bigram (tuple of subsequent tokens) in the corresponding token sequence of our training text. Then we add it to our vocabulary, creating in this way a new \textbf{merge}. After this we replace all its occurrences with the correspnding mapping according to the vocabulary, i.e, its index. We perform the whole process iteratively, adding new merges until the desired vocabulary size is achieved. Note that merges containing tokens previously added to the vocabulary are a possiblity.
+	
+	During BPE's inference stage, we encode/decode any token sequence from an inference text (the text we want to tokenize). For encoding, we simply just loop through each merge in our vocabulary, hierarchically from first merges to last merges, replacing any ocurrence of it with its assigned token. For decoding, we perform the same loop but in the opposite order, from last performed merges to the first ones, replacing them for their corresponding bigram according to the vocabulary.
+	
+	
+	Usually in BPE we do not work with a raw string of text. We usually format them in a general way that allows us to uniformly treat basically any string of text we can ever encounter. This can be done in various forms, the most common one being formatting to bytes using an UTF-8 encoder. We would then encode the most common byte pairs, and initialize our vocabulary size to be 256. See \autoref{alg:bpe} for a pseudocode and \autoref{extra:bpe} for a Python implementation.
+	
+	
+	\begin{algorithm}
+		\caption{Byte Pair Encoding using UTF-8 (BPE) -- Training}
+		\label{alg:bpe}
+		\begin{algorithmic}[1]
+			\Require Input text sequence $T$, vocabulary size $V_{target}$
+			\Ensure Learned merge rules $M$, Final token sequence $S$
+			
+			\State Convert $T$ into a sequence of UTF-8 bytes: $S \gets [b_1, b_2, \dots, b_n]$ where $b_i \in [0, 255]$
+			\State Initialize vocabulary size $V \gets 256$
+			\State Initialize merge rules $M \gets \emptyset$
+			
+			\While{$V < V_{target}$}
+			\State $C \gets \text{CountPairs}(S)$ \Comment{Compute frequency of adjacent pairs}
+			\If{$C$ is empty}
+			\State \textbf{break}
+			\EndIf
+			\State $(p_1, p_2) \gets \arg\max_{(x, y) \in C} C[x, y]$ \Comment{Find most frequent pair}
+			\State $idx \gets V$
+			\State $M[(p_1, p_2)] \gets idx$ \Comment{Record the new merge rule}
+			\State $S \gets \text{Merge}(S, (p_1, p_2), idx)$ \Comment{Replace all occurrences in sequence}
+			\State $V \gets V + 1$
+			\EndWhile
+			\State \textbf{return} $M, S$
+		\end{algorithmic}
+	\end{algorithm}
+	
+	However, there exists other approaches as 
+	
+
+	
+	The process described before is used to \emph{train} the model. We can use any form of text as input data. However, as we tipically want a versatile tokenizer for LLMs, it is beneficial that the training data correctly represents expected inputs during evaluation. For this reason we must make sure that training input texts contain a combination of code and different languages, making a 'uniform vocabulary density' without over-specializing in any domain.
+	
+	Let us now look at a python implementation of this algorithm:
+	
+	
+
+	
+	BPE can run on code points, so change defintion from utf-8 to  
+	So far only seen training definition and we still are left with code/decode. After this talk about regex motivated by token issues. Continue with special tokens (useful for meta data, used in finetuning like adapting to browser)
+	
+	
+	Difference between token and index 
+	(after tokenization) Nn embeddings, relationship with a transformer, what are channels in a transformer, forward/ backward pass transformer, training by distillation, finetuning
+
+	\section{Embeddings}
+	\section{Datasets \& Data Loading using pytorch}
+	
+	\section{Deep neural networks: mathematical formulation}
+	\subsection{Bias \& Affine transformation}
+	\subsection{Activation functions}
+	\subsection{Logits \& Softmax}
+%	
+	\section{Types of neural networks}
+	
+	\section{Training}
+	\subsection{Mathematical motivation (via Statistics)}
+	
+	
+	\subsubsection{Maximum Likelihood Estimation}
+	The \textbf{Maximum Likelihood Estimation} is an \emph{statistical approach} to the following problem: given some IID (independent and identically distributed) from which we know what distribution they follow but not its parameters, how can we \emph{estimate} them.
+	
+	MLE solves this approach by maximizing the so called \textbf{parameter likelihood}. In mathematical terms, let $p(x^{(1)}, \dotsc, x^{(n)} | \theta)$ be the joint density function for our IID data samples $x^{(1)}, \dotsc, x^{(n)} $ and some parameters $\theta$. Then this translates to finding $\arg\max_{\theta} p(x^{(1)}, \dotsc, x^{(n)}  | \theta) = \prod^n_i p(x^{(i)}| \theta)$. Note how we are considering our function fixed on the data points as we are trying to find the "best fit" for them.
+	
+	Computationally, to avoid numerical instability and to be able to conduct optimiziation, we typically aim to minimize quantities. We then can transform our problem: we can take $\text{NLL}(\theta) = -\log p(x^1, \dotsc, x^n | \theta)$. Finding the maximum parameter likelihood is then equivallent (due to logarithmic injectivity) to finding $\arg\min_{\theta} \text{NLL}(\theta)$.
+	
+	\textbf{Observation:} This statistical concept is closely tied to typical the optimization process in DL, for which we use a loss function to update the weights of our models. The NLL is a bridge between statistics and DL.
+	
+	
+
+	\subsection{Loss functions}
+	
+	\subsubsection{Cross-Entropy Loss}
+	
+	Before we get into detail, let us borrow a very important concept from statistics that help us understand better what cross-entropy is:
+	
+	\noindent
+	\vspace{0.5px}
+	\textbf{Kullback-Leibler Divergence}
+
+	\vspace{0.5px}
+	The \textbf{Kullback-Leibler Divergence} $D_{KL}(P || Q)$ is a measure of the information lost when $Q$ is used to approximate $P$. In more of a mathematical approach we say it is the "distance" between both probability distributions. The formula for discrete distributions is:
+	$$D_{KL}(P || Q) = \sum_{i \in \mathcal{X}} P(i) \log \left(\frac{P(i)}{Q(i)}\right)$$
+	
+	Let us motivate it through a concrete example. Given the two discrete probability distributions on the sample space $\mathcal{X} = \{0, 1\}$:
+	\begin{itemize}
+		\item \textbf{True Distribution $P$ (Fair Coin $X$):}
+		$P(X=0) = P(0) = p_1$
+		$P(X=1) = P(1) = q_1$
+		\item \textbf{Approximating Distribution $Q$ (Biased Coin $Y$):}
+		$P(Y=0) = Q(0) = p_2$
+		$P(Y=1) = Q(1) = q_2$ 
+	\end{itemize}
+	
+	We want to compare for a same event the probability of it happening. This in general cannot be done as they need not share the same sample space, but none the less it is a good way to visualize it.
+	
+	Consider that we flip the coin $N$ times. Then our sample space is completely determined by strings of this same length of the type $101 \dotsc 1$. For any given event $e \in \Omega$, we can define the ratio:
+	
+	$$
+	\frac{P(e)}{Q(e)} = \frac{p_1^nq_1^m}{p_2^nq_2^m}
+	$$
+	
+	
+	Now we can take the $\log$ and divide by $N$:
+	\begin{align*}
+		\frac{1}{N} \log \left( \frac{P(e)}{Q(e)} \right) &= \frac{1}{N} \log \left( \frac{p_1^n q_1^m}{p_2^n q_2^m} \right) \\
+		&= \frac{1}{N} \left[ \log(p_1^n) + \log(q_1^m) - \log(p_2^n) - \log(q_2^m) \right] \\
+		&= \frac{1}{N} \left[ n \log(p_1) + m \log(q_1) - n \log(p_2) - m \log(q_2) \right] \\
+		&= \frac{n}{N} \left[ \log(p_1) - \log(p_2) \right] + \frac{m}{N} \left[ \log(q_1) - \log(q_2) \right] \\
+		&= \frac{n}{N} \log \left( \frac{p_1}{p_2} \right) + \frac{m}{N} \log \left( \frac{q_1}{q_2} \right)
+	\end{align*}
+	
+	In the limit as $N \to \infty$, by the Law of Large Numbers, the frequency $\frac{n}{N}$ converges in probability to the true probability $P(1) = p_1$, and $\frac{m}{N}$ converges to $P(0) = q_1$.
+	
+	Thus, taking the expectation over the sequence of $N$ events, $\mathbb{E}_{P} \left[ \frac{1}{N} \log \left( \frac{P(e)}{Q(e)} \right) \right]$, we find that the limit of this average log-ratio is the Kullback-Leibler Divergence:
+	
+	$$
+	\lim_{N \to \infty} \mathbb{E}_{P} \left[ \frac{1}{N} \log \left( \frac{P(e)}{Q(e)} \right) \right] = p_1 \log \left( \frac{p_1}{p_2} \right) + q_1 \log \left( \frac{q_1}{q_2} \right)
+	$$
+	
+	This is the general formula for the KL-Divergence between two Bernoulli distributions:
+	$$
+	D_{KL}(P || Q) = \sum_{i \in \{0, 1\}} P(i) \log \left( \frac{P(i)}{Q(i)} \right)
+	$$
+	where $P(1)=p_1, P(0)=q_1$, $Q(1)=p_2, Q(0)=q_2$.	
+	
+	\subsection{Regularization}
+	\subsection{Optimization methods}
+	
+	\newpage
+	\section{Extra material}\label{subsec:extra_mat}
+	
+	\subsection{BPE}\label{extra:bpe}
+	Here I include pseudocode for some of the functions in Algorithm~\ref{alg:bpe}, together with a python implementation of it.
+	
+	
+		\begin{algorithm}[h!]
+		\caption{Further functions for BPE Training}
+		\label{alg:bpe-extra}
+		\begin{algorithmic}[1]
+			\Procedure{CountPairs}{$S$}
+			\State $Counts \gets \text{empty map}$
+			\For{$i \gets 0$ \textbf{to} $|S| - 2$}
+			\State $pair \gets (S[i], S[i+1])$
+			\State $Counts[pair] \gets Counts[pair] + 1$
+			\EndFor
+			\State \textbf{return} $Counts$
+			\EndProcedure
+			
+			\Procedure{Merge}{$S, pair, new\_token$}
+			\State $S_{new} \gets []$
+			\State $i \gets 0$
+			\While{$i < |S|$}
+			\If{$i < |S| - 1 \textbf{ and } S[i] == pair[0] \textbf{ and } S[i+1] == pair[1]$}
+			\State Append $new\_token$ to $S_{new}$
+			\State $i \gets i + 2$
+			\Else
+			\State Append $S[i]$ to $S_{new}$
+			\State $i \gets i + 1$
+			\EndIf
+			\EndWhile
+			\State \textbf{return} $S_{new}$
+			\EndProcedure
+		\end{algorithmic}
+	\end{algorithm}
+	
+	
+     \lstinputlisting[language=Python, caption={An implementation of BPE in Python (adapted code from \href{https://github.com/karpathy/minbpe}{Andrej Karpathy's github} )}, label=lst:BPE]{../code/tokenizer.py}
+	
+	
+	
+
+\end{document}
