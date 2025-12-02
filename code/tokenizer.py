@@ -7,6 +7,7 @@ class BasicTokenizer:
         self.vocab_size = vocab_size 
         self.vocab = None
         self.merges = None
+
     # <bpetraining>
     @staticmethod
     def get_stats(ids): # Get the most frequent pair in the byte-encoded text
@@ -44,12 +45,13 @@ class BasicTokenizer:
                 print(f"merging {pair} into a new token {idx}")
             ids = self.merge(ids, pair, idx)
             merges[pair] = idx
-        self.merges=  merges
+        self.merges= merges
         # <bpetraining>
+
 
     def encode(self,text):
         # given a string, return list of integers (the tokens)
-        assert self.merges != None, "First train your tokenizer!"
+        assert self.merges != None, "encode: First train your tokenizer!"
         tokens = list(text.encode("utf-8"))
         while len(tokens) >= 2:
             stats = self.get_stats(tokens)
@@ -59,14 +61,19 @@ class BasicTokenizer:
             idx = self.merges[pair]
             tokens = self.merge(tokens, pair, idx)
         return tokens
+    
+    def decode(self,tokens):
+        assert self.merges != None, "decode: First train your tokenizer!"
+        print(self.merges)
+        return 
         
 tokenizer = BasicTokenizer(1000)
 with open(files + "taylorswift.txt", "r") as file:
-    tokenizer.train(file.read(), verbose=True)
+    tokenizer.train(file.read(), verbose=False)
 
 
 tokenized = tokenizer.encode("Hello")
-tokenized_bits =   list(map(int, tokenized))
+tokenized_bits = list(map(int, tokenized))
 dummy = "Hello".encode("utf-8")
 dummy1 = list(map(int, dummy))
 print(tokenized_bits)

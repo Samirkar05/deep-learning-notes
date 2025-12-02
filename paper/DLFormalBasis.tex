@@ -90,6 +90,7 @@
 	
 	\section{Input data}
 	
+	\newpage
 	\section{Tokenization}
 	
 	
@@ -104,24 +105,20 @@
 		
 		During the training of a tokenizer, we look for efficient mappings between tokens in order to compress token sequences further. We denote as the \textbf{vocabulary} this collection of all mappings. It makes up for the entirety of the learnt parameters. However the \textbf{vocabulary dimension} is a hyper-parameter.
 	\end{itemize}
-
+	
 	\simplefig{tokenizerc.png}{How tokenizer works}{fig:tokenizerfig}
-
-
+	
 	\subsection{Byte Pair Encoding (BPE)}
 	
 	\begin{comment}
 		Byte Pair Encoding, or shortly BPE, is a basic text tokenization method that first uses an UTF-8 encoder (most frequently) to translate strings into raw bytes. Then, the most frequent pairs of subsequent bytes get added to a vocabulary. Each new byte-pair added is called a \textbf{merge}. We perform this operation iteratively, further indexing our token sequence according to new merges. In this way, merges defined as combinations of new indices plus some regular bytes are possible.
+		
+		The process described before is used to \emph{train} the model. We can use any form of text as input data. However, as we tipically want a versatile tokenizer for LLMs, it is beneficial that the training data correctly represents expected inputs during evaluation. For this reason we must make sure that training input texts contain a combination of code and different languages, making a 'uniform vocabulary density' without over-specializing in any domain.
+		
+		Let us now look at a python implementation of this algorithm:
 	\end{comment}
 	
-	Byte Pair Encoding, or shortly BPE, is a basic example of text tokenization method. During its training stage, we first find the most frequent bigram (tuple of subsequent tokens) in the corresponding token sequence of our training text. Then we add it to our vocabulary, creating in this way a new \textbf{merge}. After this we replace all its occurrences with the correspnding mapping according to the vocabulary, i.e, its index. We perform the whole process iteratively, adding new merges until the desired vocabulary size is achieved. Note that merges containing tokens previously added to the vocabulary are a possiblity.
-	
-	During BPE's inference stage, we encode/decode any token sequence from an inference text (the text we want to tokenize). For encoding, we simply just loop through each merge in our vocabulary, hierarchically from first merges to last merges, replacing any ocurrence of it with its assigned token. For decoding, we perform the same loop but in the opposite order, from last performed merges to the first ones, replacing them for their corresponding bigram according to the vocabulary.
-	
-	
-	Usually in BPE we do not work with a raw string of text. We usually format them in a general way that allows us to uniformly treat basically any string of text we can ever encounter. This can be done in various forms, the most common one being formatting to bytes using an UTF-8 encoder. We would then encode the most common byte pairs, and initialize our vocabulary size to be 256. See \autoref{alg:bpe} for a pseudocode and \autoref{extra:bpe} for a Python implementation.
-	
-	
+	Byte Pair Encoding, or shortly BPE, is a basic example of text tokenization method. During its training stage, we first find the most frequent bigram (tuple of subsequent tokens) in the corresponding token sequence of our training text. Then we add it to our vocabulary, creating in this way a new \textbf{merge}. After this we replace all its occurrences with the correspnding mapping according to the vocabulary, i.e, its index. We perform the whole process iteratively, adding new merges until the desired vocabulary size is achieved. Note that merges containing tokens previously added to the vocabulary are a possiblity. A possible implementation could be as described in \autoref{alg:bpe}:
 	\begin{algorithm}
 		\caption{Byte Pair Encoding using UTF-8 (BPE) -- Training}
 		\label{alg:bpe}
@@ -147,23 +144,35 @@
 			\State \textbf{return} $M, S$
 		\end{algorithmic}
 	\end{algorithm}
+	\newpage
+	During BPE's inference stage, we encode/decode any token sequence from an inference text (the text we want to tokenize). For encoding, we simply just loop through each merge in our vocabulary, hierarchically from first merges to last merges, replacing any ocurrence of it with its assigned token. For decoding, we perform the same loop but in the opposite order, from last performed merges to the first ones, replacing them for their corresponding bigram according to the vocabulary. See a pseudocode implementation in \autoref{alg:bpe-extra}.
+		
+	Usually, we do not work with a raw string of text. We instead format it in a general way that allows us to uniformly treat basically any string of text we can ever encounter. This can be done in various forms, like for example formatting to bytes using an UTF-8 encoder. The reference library for it is OpenAI's official library for inference-only tokenization, \textbf{tiktoken}. We see a small snippet in \autoref{lst:tiktoken}:
 	
-	However, there exists other approaches as 
+	\gitcode{tokenization_libraries.py}{tiktoken}{Example usage of the tiktoken library, for GPT-2 and GPT-4 tokenizers.}{lst:tiktoken}
+	
+	However, this is not the most common library. Instead it is \textbf{sentencepiece}, a widely used BPE tokenizer that works directly on the text's Unicode \textit{code points}, i.e., the characters of the text seen as a string. Note that exclusively building the vocabulary using code points (CPs from now on) and its mergings lacks generalization. CPs not seen during training would lack an entry in our vocabulary, a problem we would encounter using UTF-8 pre-encoding. Sentencepiece overcomes the challenge by providing a \textit{character coverage}. It is a hyper-parameter that determines what percentage of the training CPs won't be treated as unseen. There are two approaches for dealing with unseen CPs:
+	
+	\begin{itemize}
+		\item[(1)] 'UNK' Mapping: Mapping them to the special token 'UNK'.
+		\item[(2)] Byte Fallback: Pre-encoding them using UTF-8, previously introducing bits in the vocabulary.
+	\end{itemize}
+	
+	\gitcode{tokenization_libraries.py}{sentencepiece}{Example usage of the sentencepiece library, reproducing LLama2 tokenizer }{lst:spm}
+	
+	As we can see in \autoref{lst:spm}, we will be working with text files. We define different hyper-parameters: vocabulary size \& character coverage with byte fallback. Moreover we set different merging rules for segmentation of the text and add special tokens.
+	
+	
+
+	\subsubsection{Regex patterns \& special tokens}
 	
 
 	
-	The process described before is used to \emph{train} the model. We can use any form of text as input data. However, as we tipically want a versatile tokenizer for LLMs, it is beneficial that the training data correctly represents expected inputs during evaluation. For this reason we must make sure that training input texts contain a combination of code and different languages, making a 'uniform vocabulary density' without over-specializing in any domain.
 	
-	Let us now look at a python implementation of this algorithm:
-	
-	
-
-	
-	BPE can run on code points, so change defintion from utf-8 to  
-	So far only seen training definition and we still are left with code/decode. After this talk about regex motivated by token issues. Continue with special tokens (useful for meta data, used in finetuning like adapting to browser)
+	 After this talk about regex motivated by token issues. Continue with special tokens (useful for meta data, used in finetuning like adapting to browser)
 	
 	
-	Difference between token and index 
+	
 	(after tokenization) Nn embeddings, relationship with a transformer, what are channels in a transformer, forward/ backward pass transformer, training by distillation, finetuning
 
 	\section{Embeddings}
