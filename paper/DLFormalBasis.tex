@@ -103,7 +103,7 @@
 	\begin{itemize}
 		\item[(1)] \textbf{Tokenization}: It is a 'statistical' model for encoding input data following certain fixed rules and frequency optimizations to create condensed representations called \textbf{token sequences}. The latter consist of strings of \textbf{tokens}, statistically optimized encoded subdivisions of our original data. This process is bi-directional, and given any token sequence we can recover its input space representation.
 		
-		During the training of a tokenizer, we look for efficient mappings between tokens in order to compress token sequences further. We denote as the \textbf{vocabulary} this collection of all mappings. It makes up for the entirety of the learnt parameters. However the \textbf{vocabulary dimension} is a hyper-parameter.
+		During the training of a tokenizer, we look for efficient mappings between tokens in order to compress token sequences further. We denote the concept of \textbf{vocabulary} as the collection of all such mappings. It makes up for the entirety of the learnt parameters. However the \textbf{vocabulary dimension} is a hyper-parameter.
 	\end{itemize}
 	
 	\simplefig{tokenizerc.png}{How tokenizer works}{fig:tokenizerfig}
@@ -166,17 +166,50 @@
 
 	\subsubsection{Regex patterns \& special tokens}
 	
-
-	
 	
 	 After this talk about regex motivated by token issues. Continue with special tokens (useful for meta data, used in finetuning like adapting to browser)
-	
-	
-	
-	(after tokenization) Nn embeddings, relationship with a transformer, what are channels in a transformer, forward/ backward pass transformer, training by distillation, finetuning
+
 
 	\section{Embeddings}
-	\section{Datasets \& Data Loading using pytorch}
+	https://web.stanford.edu/class/archive/cs/cs224n/cs224n.1246/
+	
+	\subsection{Text embeddings}
+	
+	In what follows we will overview NLP Theory.
+	
+	We want to encapsulate de meaning of a word $w$ by encoding it as an \textbf{embedding} or word representation $w\in \mathbb{R}^n$, for some relatively low dimensional $n$. Ideally, we want words that are close to each other in meaning, i.e., \textbf{semantically similar} words, to have corresponding vectors that are "close in distance".
+	
+	First attempts of generating embeddings consist comprise the so called \textit{one hot encoding} technique. Its approach is to assign words to each of the different components of the vectors in space. We are using \textbf{localist representations} for words, as the $j$-th component of any given vector represents an specific word, so we can say the vector $e_j$ is that exact word. Following this reasoning, the canonical base of our space is formed by all the embeddings of our words in the vocabulary. Specifically, this means all the embeddings are orthogonal, meaning there is no point in encoding meaning as their dot product or distance. In general, any efforts of encoding meaning in this framework are not of interest inefficient to perform.
+	
+	Current trends involve \textbf{distributed representations} for words. Embeddings take the form of \textbf{dense vectors}, which allows use to measure their semantic similarity via their dot product. Unlike one hot encoding, we no longer encode words to components. We pay attention to the first efforts on creaing such representations using the now dated framework called \textit{word2vec}. It will be a good intuition for understanding advanced embedding frameworks like BERT and ELMo.
+
+	
+	\subsubsection{Word2vec}
+	
+	Word2vec is a framework comprising models that create embeddings as distributed representations. The main assumption of this model is that words that appear often in similar contexts, i.e., often surrounded by a similar set of words around them, then they must be semantically similar. Despite slight differences, algorithmically the models share the same following structure:
+	
+	We start with a \textbf{corpus} which is our main body text and fix a vocabulary with all of the words that appear in it (wihout repetition). Then, we iterate through each word with position $t$ in our corpus $w_t$, considering a word context window of size $s$. Together with $w_t$, we conider its set of surrounding words $\{w_{t+j},  j =\pm 1, \pm 2, ..., \pm s \}$. Depending on the model, 
+	
+	
+	The main two models are the \textit{Continuous Bag Of Words} and \textit{Skip-Gram}. They
+	
+	
+	 They propose different objective functions.
+	
+	
+	
+	Desribe idea behind word2vec Math: correspondance to MLE and the approach to model the probabilities
+	
+	
+	Information Theory: High Frequency = Low Information (ALSO IN THIS WEEK'S PAPER!)
+		
+	\subsection{Image embeddings (put after NN )}
+	Focus on ViT and maybe compare to some CNN approach
+	
+	
+	training by distillation and finetuning
+	
+	\section{Datasets \& Data Loading in Pytorch}
 	
 	\section{Deep neural networks: mathematical formulation}
 	\subsection{Bias \& Affine transformation}
@@ -299,5 +332,12 @@
 
 	
 	\gitcode{tokenizer.py}{bpetraining}{An implementation of BPE in Python (adapted code from \href{https://github.com/karpathy/minbpe}{Andrej Karpathy's github} )}{lst:bpe}
+	
+	
+	\section{Annex}
 
+	\subsection{Pseudo-likelihood}
+	
+	
+	
 \end{document}
